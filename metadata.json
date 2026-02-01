@@ -1,0 +1,7 @@
+{
+  "name": "Ålesund CRUCERO",
+  "description": "Interactive travel guide for cruise passengers visiting Ålesund, Norway.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
