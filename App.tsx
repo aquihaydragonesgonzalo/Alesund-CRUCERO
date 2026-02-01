@@ -75,7 +75,7 @@ const App = () => {
         setItinerary(prev => prev.map(a => a.id === id ? { ...a, completed: !a.completed } : a));
     };
 
-    const handleLocate = (c1: Coords, c2?: Coords) => {
+    const handleLocate = (c1: Coords, _c2?: Coords) => {
         setMapFocus(c1);
         setActiveTab('map');
     };

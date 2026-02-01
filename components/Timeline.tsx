@@ -31,7 +31,7 @@ const calculateTimeGap = (endPrevious: string, startNext: string) => {
     return diff < 60 ? `${diff} min` : `${Math.floor(diff/60)}h ${diff%60}m`;
 };
 
-const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLocate, userLocation, onSelectActivity }) => {
+const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLocate, onSelectActivity }) => {
     const now = new Date();
     const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
     
@@ -57,8 +57,9 @@ const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLoca
                     const isActive = isPointInTime 
                         ? (currentTimeMinutes >= startMinutes && currentTimeMinutes < startMinutes + 15) // Point active for 15 mins visually
                         : (currentTimeMinutes >= startMinutes && currentTimeMinutes < endMinutes);
-                        
-                    const isPast = currentTimeMinutes >= endMinutes;
+                    
+                    // Removed unused 'isPast'
+                    
                     const isCritical = act.notes === 'CRITICAL';
                     const isDeparture = act.title.includes('ZARPA');
                     const duration = calculateDuration(act.startTime, act.endTime);

@@ -33,7 +33,7 @@ const Budget: React.FC<BudgetProps> = ({ itinerary }) => {
                     setRate(data.rates.NOK);
                 }
             })
-            .catch(err => console.log('Using offline rate'));
+            .catch(() => console.log('Using offline rate'));
     }, []);
 
     const togglePaid = (id: string) => {

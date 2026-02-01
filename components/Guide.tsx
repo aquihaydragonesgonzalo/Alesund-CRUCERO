@@ -12,7 +12,7 @@ interface GuideProps {
 
 const Guide: React.FC<GuideProps> = ({ userLocation }) => {
     const [playing, setPlaying] = useState<string | null>(null);
-    const [weather, setWeather] = useState<any>(null);
+    // Removed unused weather state
     const [forecast, setForecast] = useState<DailyForecast[]>([]);
     const [hourlyForecast, setHourlyForecast] = useState<HourlyForecast[]>([]);
     const [astronomy, setAstronomy] = useState<AstronomyData | null>(null);
@@ -23,7 +23,7 @@ const Guide: React.FC<GuideProps> = ({ userLocation }) => {
         fetch('https://api.open-meteo.com/v1/forecast?latitude=62.47&longitude=6.15&current=temperature_2m,weather_code,is_day&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Europe%2FBerlin&forecast_days=5')
             .then(res => res.json())
             .then(data => {
-                setWeather(data);
+                // Removed unused setWeather(data)
                 
                 // Process Hourly (07:00 - 18:00 for today)
                 if (data.hourly) {
@@ -57,7 +57,7 @@ const Guide: React.FC<GuideProps> = ({ userLocation }) => {
                     setForecast(days);
                 }
             })
-            .catch(e => console.log('Weather offline'));
+            .catch(() => console.log('Weather offline')); // Removed unused 'e'
 
         // Solar/Astronomy (Using sunrise-sunset.org or similar, or Open-Meteo daily)
         fetch('https://api.open-meteo.com/v1/forecast?latitude=62.47&longitude=6.15&daily=sunrise,sunset,daylight_duration&timezone=Europe%2FBerlin&forecast_days=1')
@@ -71,7 +71,7 @@ const Guide: React.FC<GuideProps> = ({ userLocation }) => {
                     });
                 }
             })
-            .catch(e => console.log("Astronomy offline"));
+            .catch(() => console.log("Astronomy offline")); // Removed unused 'e'
     }, []);
 
     const playAudio = (text: string) => {
