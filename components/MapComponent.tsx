@@ -15,9 +15,37 @@ const MapComponent: React.FC<MapComponentProps> = ({ activities, userLocation, f
 
     useEffect(() => {
         if (!mapContainerRef.current || mapInstanceRef.current) return;
-        // Center map on Ålesund
-        const map = L.map(mapContainerRef.current).setView([62.4722, 6.1497], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+        
+        // 1. Define Base Layers
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+            maxZoom: 19,
+            attribution: '© OpenStreetMap' 
+        });
+
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles © Esri',
+            maxZoom: 19
+        });
+
+        // 2. Initialize Map with default layer (Street)
+        const map = L.map(mapContainerRef.current, {
+            center: [62.4722, 6.1497],
+            zoom: 13,
+            layers: [streetLayer], // Start with street layer
+            zoomControl: false // We add zoom control manually below to control position/order if needed
+        });
+
+        // Add Zoom Control
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+
+        // 3. Add Layer Control (Toggle between Street and Satellite)
+        const baseMaps = {
+            "Callejero": streetLayer,
+            "Satélite": satelliteLayer
+        };
+        
+        L.control.layers(baseMaps, undefined, { position: 'topright' }).addTo(map);
+
         mapInstanceRef.current = map;
         
         return () => {
