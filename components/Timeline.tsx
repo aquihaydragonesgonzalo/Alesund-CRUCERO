@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-    Info, ChevronDown, Ticket, AlertTriangle, Ship, MapPin, Headphones, Navigation
+    Info, ChevronDown, Ticket, AlertTriangle, Ship, MapPin, Headphones, Navigation, Footprints
 } from 'lucide-react';
 import { Activity, Coords } from '../types';
 
@@ -94,17 +94,28 @@ const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLoca
                         
                         const distStr = dist > 1000 ? `${(dist/1000).toFixed(1)} km` : `${Math.round(dist)} m`;
                         
-                        // Solo mostrar si está a más de 50 metros (para evitar ruido si ya estás allí)
+                        // Logic: If distance > 50m show badge. 
+                        // If distance < 300m, show "Near" style with Footprints
+                        const isNear = dist < 300;
+                        
                         if (dist > 50) {
                             distanceBadge = (
-                                <div className="flex items-center text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100 mr-2 shadow-sm">
-                                    <Navigation 
-                                        size={10} 
-                                        className="mr-1 text-emerald-500 transition-transform duration-500" 
-                                        style={{ transform: `rotate(${bearing}deg)` }} 
-                                        fill="currentColor"
-                                    />
-                                    {distStr}
+                                <div className={`flex items-center text-[10px] font-bold px-2 py-1 rounded-full border shadow-sm mr-2 transition-all ${
+                                    isNear 
+                                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-emerald-600 animate-pulse' 
+                                        : 'text-emerald-600 bg-emerald-50 border-emerald-100'
+                                }`}>
+                                    {isNear ? (
+                                        <Footprints size={12} className="mr-1" />
+                                    ) : (
+                                        <Navigation 
+                                            size={10} 
+                                            className="mr-1 transition-transform duration-500" 
+                                            style={{ transform: `rotate(${bearing}deg)` }} 
+                                            fill="currentColor"
+                                        />
+                                    )}
+                                    {distStr} {isNear && <span className="ml-1 opacity-90">¡Cerca!</span>}
                                 </div>
                             );
                         }
@@ -127,15 +138,15 @@ const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLoca
                                         <div className="absolute left-[-6px] top-1/2 -translate-y-1/2 w-full flex items-center z-10">
                                             <div className="w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow"></div>
                                             <div className="h-[2px] bg-red-500 w-full opacity-50"></div>
-                                            <span className="absolute right-0 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded font-bold">
+                                            <span className="absolute right-0 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded font-bold shadow-sm">
                                                 AHORA {now.getHours()}:{String(now.getMinutes()).padStart(2,'0')}
                                             </span>
                                         </div>
                                     )}
                                     <div className="flex items-center justify-center">
-                                        <span className="bg-slate-100 text-slate-500 text-xs px-2 py-1 rounded-full border border-slate-200 flex items-center">
-                                            <ChevronDown size={12} className="mr-1" />
-                                            {gap} traslado / libre
+                                        <span className="bg-slate-50 text-slate-400 text-[10px] uppercase font-bold tracking-wide px-3 py-1 rounded-full border border-slate-200 flex items-center shadow-sm">
+                                            <Footprints size={10} className="mr-1.5 opacity-50" />
+                                            {gap} tiempo traslado / libre
                                         </span>
                                     </div>
                                 </div>
@@ -169,7 +180,7 @@ const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLoca
                                     onClick={() => onSelectActivity(act)}
                                     className={`
                                         relative p-4 rounded-xl border shadow-sm transition-all cursor-pointer overflow-hidden
-                                        ${isActive ? 'bg-white border-blue-400 ring-2 ring-blue-100 shadow-blue-100' : 'bg-white border-slate-200 hover:border-blue-300'}
+                                        ${isActive ? 'active-card bg-white border-blue-500 ring-2 ring-blue-100 shadow-blue-200 scale-[1.02]' : 'bg-white border-slate-200 hover:border-blue-300'}
                                         ${act.completed ? 'opacity-70 bg-slate-50' : ''}
                                         ${isCritical ? 'bg-red-50 border-red-200' : ''}
                                         ${isDeparture ? 'bg-slate-800 border-slate-700 text-white' : ''}
@@ -186,7 +197,7 @@ const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLoca
                                             <div className="flex items-center space-x-2 mb-1">
                                                 <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
                                                     isDeparture ? 'bg-slate-700 text-slate-200' :
-                                                    isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                                                    isActive ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'
                                                 }`}>
                                                     {isPointInTime ? act.startTime : `${act.startTime} - ${act.endTime}`}
                                                 </span>
