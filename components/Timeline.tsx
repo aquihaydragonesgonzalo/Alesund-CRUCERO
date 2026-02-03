@@ -1,9 +1,8 @@
 import React from 'react';
 import { 
-    Info, ChevronDown, Ticket, AlertTriangle, Ship, MapPin, Headphones 
+    Info, ChevronDown, Ticket, AlertTriangle, Ship, MapPin, Headphones, Navigation
 } from 'lucide-react';
 import { Activity, Coords } from '../types';
-import { UPDATE_DATE } from '../constants';
 
 interface TimelineProps {
     itinerary: Activity[];
@@ -12,6 +11,31 @@ interface TimelineProps {
     userLocation: Coords | null;
     onSelectActivity: (activity: Activity, autoOpenAudio?: boolean) => void;
 }
+
+// Helper: Calculate distance in meters
+const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // Radio de la tierra en metros
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
+};
+
+// Helper: Calculate bearing (direction) in degrees
+const getBearing = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const y = Math.sin(lon2 * Math.PI/180 - lon1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180);
+    const x = Math.cos(lat1 * Math.PI/180) * Math.sin(lat2 * Math.PI/180) -
+              Math.sin(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.cos(lon2 * Math.PI/180 - lon1 * Math.PI/180);
+    const θ = Math.atan2(y, x);
+    return (θ * 180 / Math.PI + 360) % 360;
+};
 
 const calculateDuration = (start: string, end: string) => {
     const [sh, sm] = start.split(':').map(Number);
@@ -31,7 +55,7 @@ const calculateTimeGap = (endPrevious: string, startNext: string) => {
     return diff < 60 ? `${diff} min` : `${Math.floor(diff/60)}h ${diff%60}m`;
 };
 
-const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLocate, onSelectActivity }) => {
+const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLocate, onSelectActivity, userLocation }) => {
     const now = new Date();
     const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
     
@@ -53,17 +77,38 @@ const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLoca
                     const isPointInTime = startMinutes === endMinutes;
                     
                     // Status Checks
-                    // If point in time, active for 1 minute or special handling
                     const isActive = isPointInTime 
                         ? (currentTimeMinutes >= startMinutes && currentTimeMinutes < startMinutes + 15) // Point active for 15 mins visually
                         : (currentTimeMinutes >= startMinutes && currentTimeMinutes < endMinutes);
-                    
-                    // Removed unused 'isPast'
                     
                     const isCritical = act.notes === 'CRITICAL';
                     const isDeparture = act.title.includes('ZARPA');
                     const duration = calculateDuration(act.startTime, act.endTime);
                     const hasAudio = act.id === '5' || act.id === '4' || act.id === '8' || act.id === '9';
+
+                    // Distance & Bearing Logic
+                    let distanceBadge = null;
+                    if (userLocation && !act.completed) {
+                        const dist = getDistance(userLocation.lat, userLocation.lng, act.coords.lat, act.coords.lng);
+                        const bearing = getBearing(userLocation.lat, userLocation.lng, act.coords.lat, act.coords.lng);
+                        
+                        const distStr = dist > 1000 ? `${(dist/1000).toFixed(1)} km` : `${Math.round(dist)} m`;
+                        
+                        // Solo mostrar si está a más de 50 metros (para evitar ruido si ya estás allí)
+                        if (dist > 50) {
+                            distanceBadge = (
+                                <div className="flex items-center text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100 mr-2 shadow-sm">
+                                    <Navigation 
+                                        size={10} 
+                                        className="mr-1 text-emerald-500 transition-transform duration-500" 
+                                        style={{ transform: `rotate(${bearing}deg)` }} 
+                                        fill="currentColor"
+                                    />
+                                    {distStr}
+                                </div>
+                            );
+                        }
+                    }
                     
                     // Calculate Gap to next activity
                     let gapElement = null;
@@ -164,7 +209,8 @@ const Timeline: React.FC<TimelineProps> = ({ itinerary, onToggleComplete, onLoca
                                     <div className={`flex items-center justify-between mt-2 pt-2 border-t ${isDeparture ? 'border-slate-700' : 'border-slate-100'}`}>
                                         <div className={`flex items-center text-xs ${isDeparture ? 'text-slate-400' : 'text-slate-500'}`}>
                                             <MapPin size={12} className="mr-1" />
-                                            {act.locationName}
+                                            <span className="mr-2">{act.locationName}</span>
+                                            {distanceBadge}
                                         </div>
                                         
                                         <div className="flex items-center space-x-2">
