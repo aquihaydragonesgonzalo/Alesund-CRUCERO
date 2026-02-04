@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
     AlertTriangle, Anchor, Camera, Sun, CloudRain, CloudSnow, Clock, 
-    CloudSun, Droplets, Volume2, ArrowRight, Sunrise, Sunset 
+    CloudSun, Droplets, Volume2, ArrowRight, Sunrise, Sunset, FileDown, FileText
 } from 'lucide-react';
+import { jsPDF } from "jspdf";
 import { Coords, HourlyForecast, DailyForecast, AstronomyData } from '../types';
-import { PRONUNCIATIONS, UPDATE_DATE } from '../constants';
+import { PRONUNCIATIONS, UPDATE_DATE, INITIAL_ITINERARY } from '../constants';
 
 interface GuideProps {
     userLocation: Coords | null;
@@ -12,10 +13,10 @@ interface GuideProps {
 
 const Guide: React.FC<GuideProps> = ({ userLocation }) => {
     const [playing, setPlaying] = useState<string | null>(null);
-    // Removed unused weather state
     const [forecast, setForecast] = useState<DailyForecast[]>([]);
     const [hourlyForecast, setHourlyForecast] = useState<HourlyForecast[]>([]);
     const [astronomy, setAstronomy] = useState<AstronomyData | null>(null);
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
     // Fetch Weather & Solar Data
     useEffect(() => {
@@ -23,8 +24,6 @@ const Guide: React.FC<GuideProps> = ({ userLocation }) => {
         fetch('https://api.open-meteo.com/v1/forecast?latitude=62.47&longitude=6.15&current=temperature_2m,weather_code,is_day&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Europe%2FBerlin&forecast_days=5')
             .then(res => res.json())
             .then(data => {
-                // Removed unused setWeather(data)
-                
                 // Process Hourly (07:00 - 18:00 for today)
                 if (data.hourly) {
                     const hourly: HourlyForecast[] = [];
@@ -57,9 +56,9 @@ const Guide: React.FC<GuideProps> = ({ userLocation }) => {
                     setForecast(days);
                 }
             })
-            .catch(() => console.log('Weather offline')); // Removed unused 'e'
+            .catch(() => console.log('Weather offline'));
 
-        // Solar/Astronomy (Using sunrise-sunset.org or similar, or Open-Meteo daily)
+        // Solar/Astronomy
         fetch('https://api.open-meteo.com/v1/forecast?latitude=62.47&longitude=6.15&daily=sunrise,sunset,daylight_duration&timezone=Europe%2FBerlin&forecast_days=1')
             .then(res => res.json())
             .then(data => {
@@ -71,7 +70,7 @@ const Guide: React.FC<GuideProps> = ({ userLocation }) => {
                     });
                 }
             })
-            .catch(() => console.log("Astronomy offline")); // Removed unused 'e'
+            .catch(() => console.log("Astronomy offline"));
     }, []);
 
     const playAudio = (text: string) => {
@@ -103,13 +102,136 @@ const Guide: React.FC<GuideProps> = ({ userLocation }) => {
     };
 
     const openTranslator = () => {
-        // Google Translate Camera Mode
         window.open('https://translate.google.com/?sl=no&tl=es&op=images', '_blank');
     };
     
     const openMSCApp = () => {
-        // Try to open Play Store page which will offer "Open" if installed
         window.open('https://play.google.com/store/apps/details?id=com.msccruises.mscforme', '_blank');
+    };
+
+    const generatePDF = async () => {
+        setIsGeneratingPdf(true);
+        try {
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let y = 20;
+
+            // --- Font Loading Fix ---
+            // Load Roboto font to support Norwegian characters and Euro symbol correctly
+            const loadFont = async (url: string, name: string, style: string) => {
+                try {
+                    const res = await fetch(url);
+                    const buf = await res.arrayBuffer();
+                    // Convert ArrayBuffer to Base64 manually to avoid stack overflow with large files
+                    let binary = '';
+                    const bytes = new Uint8Array(buf);
+                    const len = bytes.byteLength;
+                    for (let i = 0; i < len; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                    }
+                    const b64 = window.btoa(binary);
+                    
+                    doc.addFileToVFS(`${name}-${style}.ttf`, b64);
+                    doc.addFont(`${name}-${style}.ttf`, name, style);
+                } catch (e) {
+                    console.error("Failed to load font", e);
+                }
+            };
+
+            await Promise.all([
+                 loadFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal'),
+                 loadFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf', 'Roboto', 'bold')
+            ]);
+            // ------------------------
+
+            // Header
+            doc.setFont('Roboto', 'bold');
+            doc.setFontSize(22);
+            doc.setTextColor(42, 91, 135); // fjord-500
+            doc.text("Guía Ålesund 2026", 20, y);
+            
+            doc.setFont('Roboto', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Fecha Itinerario: 13 de mayo de 2026`, 20, y + 6);
+            
+            y += 20;
+
+            // Loop Items
+            INITIAL_ITINERARY.forEach((item, index) => {
+                // Page Break Check (A4 height is ~297mm)
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+
+                // Time Badge & Title
+                doc.setDrawColor(200);
+                doc.setLineWidth(0.5);
+                doc.line(20, y, 20, y + 10); // Vertical line decoration
+
+                doc.setFont('Roboto', 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(0);
+                const timeText = item.startTime === item.endTime ? item.startTime : `${item.startTime} - ${item.endTime}`;
+                doc.text(`${timeText} | ${item.title}`, 25, y + 4);
+
+                y += 10;
+
+                // Location
+                doc.setFont('Roboto', 'normal'); // Use normal instead of italic if italic font not loaded, or load italic. Using normal for now.
+                doc.setFontSize(10);
+                doc.setTextColor(80);
+                doc.text(`📍 ${item.locationName}`, 25, y);
+                y += 6;
+
+                // Description (Word Wrap)
+                doc.setFontSize(10);
+                doc.setTextColor(40);
+                const descText = item.fullDescription || item.description;
+                const splitDesc = doc.splitTextToSize(descText, pageWidth - 45);
+                doc.text(splitDesc, 25, y);
+                y += (splitDesc.length * 5);
+
+                // Tips if any
+                if (item.tips) {
+                    y += 2;
+                    doc.setFontSize(9);
+                    doc.setTextColor(200, 100, 0); // orange-ish
+                    const tipsText = `💡 Tip: ${item.tips}`;
+                    const splitTips = doc.splitTextToSize(tipsText, pageWidth - 45);
+                    doc.text(splitTips, 25, y);
+                    y += (splitTips.length * 4);
+                }
+
+                // Price
+                if (item.priceNOK > 0) {
+                     y += 3;
+                     doc.setFontSize(9);
+                     doc.setTextColor(42, 91, 135);
+                     doc.text(`💰 Coste: ${item.priceNOK} NOK (~€${item.priceEUR})`, 25, y);
+                     y += 4;
+                }
+
+                y += 8; // Spacing between items
+            });
+
+            // Footer
+            const pageCount = doc.getNumberOfPages();
+            for(let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(`Página ${i} de ${pageCount} - Generado por Ålesund Guide App`, pageWidth / 2, 290, { align: 'center' });
+            }
+
+            doc.save("Itinerario_Alesund_2026.pdf");
+        } catch (error) {
+            console.error(error);
+            alert("Hubo un error al generar el PDF. Verifica tu conexión.");
+        } finally {
+            setIsGeneratingPdf(false);
+        }
     };
 
     // Solar Chart Helper
@@ -232,6 +354,22 @@ const Guide: React.FC<GuideProps> = ({ userLocation }) => {
                     </button>
                 </div>
             </div>
+
+            {/* PDF Button */}
+            <button 
+                onClick={generatePDF}
+                disabled={isGeneratingPdf}
+                className="w-full bg-white border border-slate-300 text-slate-700 p-3 rounded-xl shadow-sm mb-6 flex items-center justify-center font-bold active:scale-95 active:bg-slate-50 transition-all hover:border-slate-400 hover:shadow"
+            >
+                {isGeneratingPdf ? (
+                    <span className="animate-pulse">Generando PDF...</span>
+                ) : (
+                    <>
+                        <FileDown size={20} className="mr-2 text-fjord-600" />
+                        Descargar Itinerario PDF
+                    </>
+                )}
+            </button>
 
             <h2 className="text-2xl font-bold text-fjord-500 mb-4">Guía Local</h2>
 
