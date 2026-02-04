@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
     AlertTriangle, Anchor, Camera, Sun, CloudRain, CloudSnow, Clock, 
-    CloudSun, Droplets, Volume2, ArrowRight, Sunrise, Sunset, FileDown, FileText
+    CloudSun, Droplets, Volume2, ArrowRight, Sunrise, Sunset, FileDown
 } from 'lucide-react';
 import jsPDF from "jspdf";
 import { Coords, HourlyForecast, DailyForecast, AstronomyData } from '../types';
@@ -160,7 +160,7 @@ const Guide: React.FC<GuideProps> = ({ userLocation }) => {
             y += 20;
 
             // Loop Items
-            INITIAL_ITINERARY.forEach((item, index) => {
+            INITIAL_ITINERARY.forEach((item) => {
                 // Page Break Check (A4 height is ~297mm)
                 if (y > 270) {
                     doc.addPage();

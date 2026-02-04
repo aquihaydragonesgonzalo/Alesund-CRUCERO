@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-    Info, ChevronDown, Ticket, AlertTriangle, Ship, MapPin, Headphones, Navigation, Footprints
+    Info, Ticket, AlertTriangle, Ship, MapPin, Headphones, Navigation, Footprints
 } from 'lucide-react';
 import { Activity, Coords } from '../types';
 
