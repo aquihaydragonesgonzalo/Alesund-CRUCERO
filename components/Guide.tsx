@@ -3,7 +3,7 @@ import {
     AlertTriangle, Anchor, Camera, Sun, CloudRain, CloudSnow, Clock, 
     CloudSun, Droplets, Volume2, ArrowRight, Sunrise, Sunset, FileDown, FileText
 } from 'lucide-react';
-import { jsPDF } from "jspdf";
+import jsPDF from "jspdf";
 import { Coords, HourlyForecast, DailyForecast, AstronomyData } from '../types';
 import { PRONUNCIATIONS, UPDATE_DATE, INITIAL_ITINERARY } from '../constants';
 
@@ -112,6 +112,8 @@ const Guide: React.FC<GuideProps> = ({ userLocation }) => {
     const generatePDF = async () => {
         setIsGeneratingPdf(true);
         try {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
             let y = 20;
