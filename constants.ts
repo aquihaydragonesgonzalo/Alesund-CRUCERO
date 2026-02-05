@@ -18,6 +18,16 @@ export const COORDS: Record<string, Coords> = {
 
 export const INITIAL_ITINERARY: Activity[] = [
     {
+        id: '0', title: 'Desayuno Buffet "Marketplace"', startTime: '06:15', endTime: '06:45',
+        locationName: 'MSC Euribia - Cubierta 15', coords: COORDS.CRUISE_DOCK,
+        description: 'Carga energías antes de bajar.',
+        fullDescription: 'Desayuno completo en el buffet Marketplace antes de la llegada a puerto. Es importante comer bien para aguantar la caminata matutina y las visitas.',
+        tips: 'Evita las colas yendo temprano. Llena tu botella de agua si es posible.',
+        keyDetails: 'Incluido en crucero.',
+        priceNOK: 0, priceEUR: 0, type: 'food', completed: false,
+        instagramUrl: 'https://www.instagram.com/explore/tags/msceuribia/'
+    },
+    {
         id: '1', title: 'Atraque MSC Euribia', startTime: '07:00', endTime: '07:00',
         locationName: 'Muelle de Cruceros', coords: COORDS.CRUISE_DOCK,
         description: 'El barco llega a puerto.',
