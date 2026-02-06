@@ -1,3 +1,4 @@
+
 export interface Coords {
     lat: number;
     lng: number;
@@ -83,4 +84,12 @@ export interface CustomExpense {
     priceNOK: number;
     priceEUR: number;
     type: 'extra';
+}
+
+export interface CustomMarker {
+    id: string;
+    lat: number;
+    lng: number;
+    title: string;
+    timestamp: number;
 }
