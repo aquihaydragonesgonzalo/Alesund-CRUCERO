@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import L from 'leaflet';
+import { MapPin, X, Save, Type, AlignLeft, Trash2 } from 'lucide-react';
 import { Activity, Coords, CustomMarker } from '../types';
 
 interface MapComponentProps {
@@ -15,6 +16,12 @@ const MapComponent: React.FC<MapComponentProps> = ({ activities, userLocation, f
     
     // State for Custom Markers (Waypoints)
     const [customMarkers, setCustomMarkers] = useState<CustomMarker[]>([]);
+    
+    // State for the "Add POI" Modal
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [tempCoords, setTempCoords] = useState<Coords | null>(null);
+    const [newPoiTitle, setNewPoiTitle] = useState('');
+    const [newPoiDesc, setNewPoiDesc] = useState('');
 
     // Load markers from LocalStorage on mount
     useEffect(() => {
@@ -33,23 +40,32 @@ const MapComponent: React.FC<MapComponentProps> = ({ activities, userLocation, f
         localStorage.setItem('alesund_custom_markers', JSON.stringify(customMarkers));
     }, [customMarkers]);
 
-    const handleAddPoint = (lat: number, lng: number) => {
-        // eslint-disable-next-line no-alert
-        const title = window.prompt("Nombre para este punto de interés:");
-        if (title && title.trim() !== "") {
-            // eslint-disable-next-line no-alert
-            const description = window.prompt("Descripción (opcional):");
+    const handleMapClick = (lat: number, lng: number) => {
+        setTempCoords({ lat, lng });
+        setNewPoiTitle('');
+        setNewPoiDesc('');
+        setIsModalOpen(true);
+    };
 
-            const newMarker: CustomMarker = {
-                id: Date.now().toString(),
-                lat,
-                lng,
-                title: title.trim(),
-                description: description || undefined,
-                timestamp: Date.now()
-            };
-            setCustomMarkers(prev => [...prev, newMarker]);
-        }
+    const saveMarker = () => {
+        if (!tempCoords || !newPoiTitle.trim()) return;
+
+        const newMarker: CustomMarker = {
+            id: Date.now().toString(),
+            lat: tempCoords.lat,
+            lng: tempCoords.lng,
+            title: newPoiTitle.trim(),
+            description: newPoiDesc.trim() || undefined,
+            timestamp: Date.now()
+        };
+
+        setCustomMarkers(prev => [...prev, newMarker]);
+        closeModal();
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setTempCoords(null);
     };
 
     const handleDeletePoint = (id: string) => {
@@ -94,7 +110,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ activities, userLocation, f
 
         // 4. Click Event for Custom Markers
         map.on('click', (e: L.LeafletMouseEvent) => {
-            handleAddPoint(e.latlng.lat, e.latlng.lng);
+            handleMapClick(e.latlng.lat, e.latlng.lng);
         });
 
         mapInstanceRef.current = map;
@@ -106,7 +122,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ activities, userLocation, f
             }
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Empty dependency to run once
+    }, []); // Empty dependency to run once - click handler uses external state setter which is stable
 
     // Render Layers (Activity Markers + Custom Markers)
     useEffect(() => {
@@ -155,9 +171,13 @@ const MapComponent: React.FC<MapComponentProps> = ({ activities, userLocation, f
                 <div class="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Punto Personalizado</div>
             `;
             const btn = document.createElement('button');
-            btn.innerText = "Eliminar Punto";
-            btn.className = "w-full bg-red-50 hover:bg-red-100 text-red-600 text-xs py-1.5 px-2 rounded font-bold transition-colors border border-red-100";
-            btn.onclick = () => {
+            btn.innerText = "Eliminar";
+            btn.className = "w-full bg-red-50 hover:bg-red-100 text-red-600 text-xs py-1.5 px-2 rounded font-bold transition-colors border border-red-100 mt-1";
+            
+            // We can't attach React event handlers easily to HTML strings in Leaflet popups
+            // So we assign directly to the DOM element after creation
+            btn.onclick = (e) => {
+                e.stopPropagation(); // Prevent map click
                 handleDeletePoint(m.id);
                 map.closePopup();
             };
@@ -185,10 +205,83 @@ const MapComponent: React.FC<MapComponentProps> = ({ activities, userLocation, f
         <div className="relative w-full h-full">
             <div ref={mapContainerRef} className="w-full h-full bg-slate-100" />
             
-            {/* Instruction Overlay */}
-            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-md z-[400] text-xs font-medium text-slate-600 pointer-events-none border border-slate-200 flex items-center">
-               <span className="w-2 h-2 bg-purple-600 rounded-full mr-2"></span> Toca el mapa para añadir puntos
-            </div>
+            {/* Instruction Overlay (Only visible when modal is closed) */}
+            {!isModalOpen && (
+                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-md z-[400] text-xs font-medium text-slate-600 pointer-events-none border border-slate-200 flex items-center">
+                    <span className="w-2 h-2 bg-purple-600 rounded-full mr-2 animate-pulse"></span> Toca el mapa para añadir puntos
+                </div>
+            )}
+
+            {/* Custom POI Modal Overlay */}
+            {isModalOpen && (
+                <div className="absolute inset-0 z-[2000] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-purple-100 to-white p-4 border-b border-purple-100 flex justify-between items-center">
+                            <div className="flex items-center text-purple-800">
+                                <MapPin size={20} className="mr-2" />
+                                <h3 className="font-bold text-lg">Nuevo Punto</h3>
+                            </div>
+                            <button onClick={closeModal} className="p-1 rounded-full hover:bg-slate-100 text-slate-400 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nombre del Lugar</label>
+                                <div className="relative">
+                                    <div className="absolute top-3 left-3 text-slate-400">
+                                        <Type size={16} />
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        autoFocus
+                                        value={newPoiTitle}
+                                        onChange={(e) => setNewPoiTitle(e.target.value)}
+                                        placeholder="Ej: Tienda de souvenirs"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all text-sm font-medium"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Descripción (Opcional)</label>
+                                <div className="relative">
+                                    <div className="absolute top-3 left-3 text-slate-400">
+                                        <AlignLeft size={16} />
+                                    </div>
+                                    <textarea 
+                                        value={newPoiDesc}
+                                        onChange={(e) => setNewPoiDesc(e.target.value)}
+                                        placeholder="Horarios, precios, notas..."
+                                        rows={3}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all text-sm resize-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-2 flex space-x-3">
+                                <button 
+                                    onClick={closeModal}
+                                    className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={saveMarker}
+                                    disabled={!newPoiTitle.trim()}
+                                    className={`flex-1 py-3 text-sm font-bold text-white rounded-xl shadow-md flex items-center justify-center transition-all ${!newPoiTitle.trim() ? 'bg-slate-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 active:scale-95'}`}
+                                >
+                                    <Save size={18} className="mr-2" />
+                                    Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
