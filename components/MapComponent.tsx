@@ -37,11 +37,15 @@ const MapComponent: React.FC<MapComponentProps> = ({ activities, userLocation, f
         // eslint-disable-next-line no-alert
         const title = window.prompt("Nombre para este punto de interés:");
         if (title && title.trim() !== "") {
+            // eslint-disable-next-line no-alert
+            const description = window.prompt("Descripción (opcional):");
+
             const newMarker: CustomMarker = {
                 id: Date.now().toString(),
                 lat,
                 lng,
                 title: title.trim(),
+                description: description || undefined,
                 timestamp: Date.now()
             };
             setCustomMarkers(prev => [...prev, newMarker]);
@@ -143,13 +147,16 @@ const MapComponent: React.FC<MapComponentProps> = ({ activities, userLocation, f
             
             // Custom Popup with Delete Button
             const div = document.createElement('div');
+            const descHtml = m.description ? `<div class="text-xs text-slate-600 mb-2 whitespace-pre-wrap leading-relaxed border-l-2 border-purple-200 pl-2">${m.description}</div>` : '';
+            
             div.innerHTML = `
-                <div class="font-bold text-sm mb-1">${m.title}</div>
-                <div class="text-xs text-slate-500 mb-2">Tus Puntos Guardados</div>
+                <div class="font-bold text-sm mb-1 text-purple-900">${m.title}</div>
+                ${descHtml}
+                <div class="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Punto Personalizado</div>
             `;
             const btn = document.createElement('button');
             btn.innerText = "Eliminar Punto";
-            btn.className = "w-full bg-red-100 hover:bg-red-200 text-red-600 text-xs py-1 px-2 rounded font-bold transition-colors";
+            btn.className = "w-full bg-red-50 hover:bg-red-100 text-red-600 text-xs py-1.5 px-2 rounded font-bold transition-colors border border-red-100";
             btn.onclick = () => {
                 handleDeletePoint(m.id);
                 map.closePopup();

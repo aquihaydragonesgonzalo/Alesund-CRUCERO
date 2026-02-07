@@ -91,5 +91,6 @@ export interface CustomMarker {
     lat: number;
     lng: number;
     title: string;
+    description?: string;
     timestamp: number;
 }
