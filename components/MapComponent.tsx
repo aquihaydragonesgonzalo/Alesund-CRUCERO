@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import L from 'leaflet';
-import { MapPin, X, Save, Type, AlignLeft, Trash2 } from 'lucide-react';
+import { MapPin, X, Save, Type, AlignLeft } from 'lucide-react';
 import { Activity, Coords, CustomMarker } from '../types';
 
 interface MapComponentProps {
